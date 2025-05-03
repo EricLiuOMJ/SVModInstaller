@@ -4,7 +4,9 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 > **作者**：Eric Liu
-> **开发工具**：Cursor
+>
+> **开发工具**：VS Code
+>
 > **GitHub 仓库**：[https://github.com/EricLiuOMJ/SVModInstaller](https://github.com/EricLiuOMJ/SVModInstaller)
 
 这是一个用于自动化安装《星露谷物语（Stardew Valley）》模组的 Python 程序。它可以帮助你轻松安装 SMAPI、管理 MOD，并安装 Stardrop 模组管理器。本程序特别适合电脑新手，提供一键式操作体验。
@@ -200,31 +202,11 @@ A: 可能是该文件路径过深，引起的解压错误，从而报错找不�
 
 ---
 
+# 🌟 星露谷物语模组安装程序使用说明
+
 ## 📝 版本信息
 
-### v2.0.0
-
-- [x] 移除 resource 目录下的资源文件，改为在线下载的方式
-- [x] 优化日志输出与异常处理机制
-
-### v1.2.0
-
-- 添加构建发布脚本
-- 重新规整项目结构
-- 优化安装流程
-- 添加说明文档等
-
-### v1.1.0
-
-- 重构为 Python 程序
-- 改进构建系统
-- 优化代码结构
-- 更新依赖管理
-
-### v1.0.0
-
-- 初始版本发布
-- 支持完整安装流程（SMAPI、MOD、Stardrop）
+请查看 [CHANGELOG.md](./CHANGELOG.md) 获取详细的版本更新信息。
 
 ---
 

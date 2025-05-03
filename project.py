@@ -1,13 +1,18 @@
 import argparse
+import io
 import json
 import os
 import requests
 import shutil
 import subprocess
+import sys
 import time
 import zipfile
 from datetime import datetime
 from pathlib import Path
+
+# 设置标准输出编码为 UTF-8
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # 基础路径配置
 SCRIPT_DIR = Path(__file__).parent.absolute()
@@ -40,8 +45,11 @@ BUILD_ITEMS = [
 ]
 
 # ====== Update 相关函数 ======
+
+
 def get_cache_file_path(repo_name):
     return os.path.join(CACHE_DIR, f"{repo_name}_release_info.json")
+
 
 def is_cache_valid(repo_name):
     cache_file = get_cache_file_path(repo_name)
@@ -51,15 +59,18 @@ def is_cache_valid(repo_name):
             return True
     return False
 
+
 def load_cache(repo_name):
     cache_file = get_cache_file_path(repo_name)
     with open(cache_file, 'r', encoding='utf-8') as f:
         return json.load(f)
 
+
 def save_cache(repo_name, data):
     cache_file = get_cache_file_path(repo_name)
     with open(cache_file, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
+
 
 def get_latest_zip_info(repo_name, api_url, headers=None):
     if is_cache_valid(repo_name):
@@ -101,6 +112,7 @@ def get_latest_zip_info(repo_name, api_url, headers=None):
         "target_zip_name": target_zip_name
     }
 
+
 def download_zip(repo_name, zip_url, target_zip_name):
     if not zip_url or not target_zip_name:
         print(f"[{repo_name}] 无效的下载信息，跳过下载。")
@@ -120,6 +132,8 @@ def download_zip(repo_name, zip_url, target_zip_name):
         print(f"[{repo_name}] 下载失败: {str(e)}")
 
 # ====== Build 相关函数 ======
+
+
 def clean_build_dirs():
     """清理构建目录"""
     for dir_name in [BUILD_DIR, DIST_DIR]:
@@ -131,6 +145,7 @@ def clean_build_dirs():
             spec_file.unlink()
         except Exception as e:
             print(f"无法删除 {spec_file}: {e}")
+
 
 def build_exe(py_file: str, exe_name: str):
     print(f"正在构建 {exe_name}...")
@@ -155,6 +170,8 @@ def build_exe(py_file: str, exe_name: str):
     return True
 
 # ====== Release 相关函数 ======
+
+
 def create_release_dir(release_name: str) -> Path:
     release_dir = RELEASE_DIR / release_name
     if release_dir.exists():
@@ -162,10 +179,12 @@ def create_release_dir(release_name: str) -> Path:
     release_dir.mkdir(parents=True)
     return release_dir
 
+
 def copy_files(src_paths, dest_dir: Path):
     for src in src_paths:
         if src.exists():
             shutil.copy2(src, dest_dir)
+
 
 def package_zip(release_dir: Path, zip_name: str):
     release_zip = RELEASE_DIR / f"{zip_name}.zip"
@@ -175,6 +194,7 @@ def package_zip(release_dir: Path, zip_name: str):
                 zipf.write(file, file.relative_to(release_dir))
     return release_zip
 
+
 def build_release_package(release_name: str, zip_name: str, files_to_copy):
     release_dir = create_release_dir(release_name)
     copy_files(files_to_copy, release_dir)
@@ -182,6 +202,7 @@ def build_release_package(release_name: str, zip_name: str, files_to_copy):
     shutil.rmtree(release_dir)
     print(f"发布包已创建: {release_zip}")
     return release_zip
+
 
 def create_release_zip(version: str):
     release_name = f"SVModsInstall_v{version}"
@@ -192,6 +213,7 @@ def create_release_zip(version: str):
     files_to_copy = [exe_path, readme_path] + zip_files
     build_release_package(release_name, zip_name, files_to_copy)
 
+
 def create_sv_path_finder_zip(version: str):
     release_name = f"SVPathFinder_v{version}"
     zip_name = release_name
@@ -201,6 +223,8 @@ def create_sv_path_finder_zip(version: str):
     build_release_package(release_name, zip_name, files_to_copy)
 
 # ====== 主函数 ======
+
+
 def main():
     parser = argparse.ArgumentParser(description="星露谷模组安装器项目工具")
     subparsers = parser.add_subparsers(dest='command', help='可用命令')
@@ -210,9 +234,12 @@ def main():
 
     # build 命令
     build_parser = subparsers.add_parser('build', help='构建可执行文件')
-    build_parser.add_argument("--sv-mod-installer", "-i", action="store_true", help="构建SVModInstaller.exe")
-    build_parser.add_argument("--sv-path-finder", "-p", action="store_true", help="构建SVPathFinder.exe")
-    build_parser.add_argument("--all", "-a", action="store_true", help="构建所有文件")
+    build_parser.add_argument(
+        "--sv-mod-installer", "-i", action="store_true", help="构建SVModInstaller.exe")
+    build_parser.add_argument("--sv-path-finder", "-p",
+                              action="store_true", help="构建SVPathFinder.exe")
+    build_parser.add_argument(
+        "--all", "-a", action="store_true", help="构建所有文件")
 
     # release 命令
     release_parser = subparsers.add_parser('release', help='创建发布包')
@@ -224,7 +251,8 @@ def main():
         for repo_name, api_url in REPO_API_URLS.items():
             result = get_latest_zip_info(repo_name, api_url)
             if result:
-                download_zip(repo_name, result.get('zip_url'), result.get('target_zip_name'))
+                download_zip(repo_name, result.get('zip_url'),
+                             result.get('target_zip_name'))
 
     elif args.command == 'build':
         if not SRC_DIR.exists() or not RESOURCE_DIR.exists():
@@ -271,6 +299,7 @@ def main():
 
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     main()
