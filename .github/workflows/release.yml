@@ -55,6 +55,11 @@ jobs:
           echo "CHANGELOG=$changelog" >> $env:GITHUB_OUTPUT
         shell: pwsh
 
+      - name: Set time
+        run: |
+          TIME="$(TZ='Asia/Shanghai' date +'%Y-%m-%d %H:%M:%S')"
+          echo "TIME=$TIME" >> $GITHUB_ENV
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
@@ -67,9 +72,12 @@ jobs:
             ## 更新日志
             ${{ steps.changelog.outputs.CHANGELOG }}
 
+            详情可见[CHANGELOG](./CHANGELOG.md)。
+
             ## 发布信息
-            发布时间：${{ format(github.event.workflow_dispatch.timestamp, 'YYYY-MM-DD HH:mm:ss') }}
+            发布时间：${{ env.TIME }} (GMT+8)
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TZ: Asia/Shanghai
