@@ -1,0 +1,4 @@
+pywin32>=305
+vdf>=3.4
+pywinauto>=0.6.8
+pyinstaller>=6.3.0
