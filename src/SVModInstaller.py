@@ -18,7 +18,7 @@ import time
 import traceback
 import win32com.client
 from pywinauto.application import Application
-from SVPathFinder import get_stardew_game_path
+from SVPathFinder import get_stardew_game_path, get_mods_folder_path
 from tool import Colors, print_color, get_resource_path, expand_zip_file, find_zip_file
 
 WORK_DIR = get_resource_path("")
@@ -87,7 +87,7 @@ def manage_mod(source_folder: Union[str, Path], mod_name: str, operation: str,
                mods_path: Union[str, Path]) -> Tuple[int, int]:
     """
     管理MOD内容的复制或删除操作 (使用简化后的长路径支持)
-    返回: (成功处理的项目数, 失败的项目数)    
+    返回: (成功处理的项目数, 失败的项目数)
 
     Args:
         source_folder: 源文件夹路径 (单个 Mod 的源目录，例如 resource/Mods/ModA)
@@ -201,8 +201,7 @@ def show_mod_menu(operation: str, mods_path: Union[str, Path]) -> None:
                 continue
             choice = int(choice_str)
 
-            total_processed = 0
-            total_failed = 0
+            total_processed, total_failed = 0, 0
             mods_to_process = []
 
             if choice == 0:
@@ -240,12 +239,9 @@ def show_mod_menu(operation: str, mods_path: Union[str, Path]) -> None:
             break  # 出错则退出循环
 
 
-def install_smapi(sv_path: Union[str, Path]) -> bool:
+def install_smapi(smapi_exe_path: Union[str, Path]) -> bool:
     """安装SMAPI"""
-    sv_path = Path(sv_path)
-    smapi_exe_path = sv_path / "StardewModdingAPI.exe"
-
-    if smapi_exe_path.exists():
+    if Path(smapi_exe_path).exists():
         print_color("SMAPI 已安装，跳过。", Colors.GREEN)
         return False
 
@@ -303,9 +299,7 @@ def install_smapi(sv_path: Union[str, Path]) -> bool:
 
 def install_stardrop(sv_path: Union[str, Path]) -> None:
     """安装Stardrop管理器 (使用长路径支持)"""
-    sv_path = Path(sv_path)
-    install_base_path = sv_path.parent.parent
-    stardrop_target_path = install_base_path / "Stardrop"
+    stardrop_target_path = Path(sv_path).parent.parent / "Stardrop"
     stardrop_shortcut_path = Path(
         os.path.expanduser("~/Desktop")) / "Stardrop.lnk"
 
@@ -321,11 +315,9 @@ def install_stardrop(sv_path: Union[str, Path]) -> None:
             stardrop_extract_temp_dir = RESOURCE_DIR / "Stardrop_extracted"
 
             # 清理旧的临时目录（如果存在）
-            # remove_path 会处理不存在的情况，无需 try-except
             if stardrop_extract_temp_dir.exists():
                 print_color(
                     f"发现旧的临时目录，尝试清理: {stardrop_extract_temp_dir.name}", Colors.YELLOW)
-                # 直接调用，remove_path 会处理错误
                 remove_path(stardrop_extract_temp_dir)
 
             stardrop_extract_path = expand_zip_file(
@@ -441,39 +433,34 @@ def main() -> None:
     print_color(LINE, Colors.GREEN)
     print_color("          星露谷物语 Mod 安装程序 v1.1.0", Colors.GREEN)
     print_color(LINE, Colors.GREEN)
-
     exit_code = 0  # 默认为成功退出
-    sv_path = None
-    mods_path = None
     was_smapi_installed_now = False  # 用于判断是否显示 Steam 提示
 
     try:
         # 步骤 0: 获取路径 (这个不适合用 run_step，因为它决定后续步骤是否执行)
         print_color("\n=== 步骤 0：获取游戏路径 ===", Colors.YELLOW)
-        sv_path_str = get_stardew_game_path()
-        if not sv_path_str:
+        sv_path = get_stardew_game_path()
+        if not sv_path:
             print_color("未能自动找到游戏路径，请手动运行 SMAPI 安装程序。", Colors.RED)
             exit_code = 1
             return
-        sv_path = Path(sv_path_str)
         mods_path = sv_path / "Mods"
-        mods_path.mkdir(exist_ok=True)
+        smapi_exe_path = sv_path / "StardewModdingAPI.exe"
 
         print_color(f"游戏路径: {sv_path}", Colors.BLUE)
         print_color(f"Mods 路径: {mods_path}", Colors.BLUE)
 
         # 步骤 1: 安装 SMAPI
-        smapi_step_success = run_step(1, "安装 SMAPI", install_smapi, sv_path)
+        smapi_step_success = run_step(
+            1, "安装 SMAPI", install_smapi, smapi_exe_path)
         if smapi_step_success:
             # 检查 SMAPI 是否确实安装成功（或已安装）
-            if (sv_path / "StardewModdingAPI.exe").exists():
-                pass  # 成功信息已在 install_smapi 内部打印
-            else:
+            if not smapi_exe_path.exists():
                 # 虽然 run_step 成功，但 SMAPI 文件不存在，说明逻辑失败
                 print_color(
                     "SMAPI 安装步骤完成，但未检测到 StardewModdingAPI.exe。", Colors.YELLOW)
         else:
-            # run_step 失败，打印了错误，可以选择是否停止
+            mods_path.mkdir(exist_ok=True)
             print_color("SMAPI 安装步骤失败，后续步骤可能受影响。", Colors.YELLOW)
 
         # 步骤 2: MODS 安装管理
@@ -494,10 +481,11 @@ def main() -> None:
         print_color(LINE, Colors.GREEN)
 
         # 检查 SMAPI 是否存在来决定是否显示提示 (更可靠的方式)
-        if (sv_path / "StardewModdingAPI.exe").exists():
+        if smapi_exe_path.exists():
+            print_color(LINE, Colors.BLUE)
             print_color("提示：如果通过 Steam 启动游戏，请将以下内容复制粘贴到游戏启动选项中：", Colors.CYAN)
-            print_color(
-                f'"{sv_path / "StardewModdingAPI.exe"}" %command%', Colors.CYAN)
+            print_color(f'"{smapi_exe_path}" %command%', Colors.CYAN)
+            print_color(LINE, Colors.BLUE)
 
     except Exception as e:
         print_color("\n发生未处理的严重错误:", Colors.RED)
