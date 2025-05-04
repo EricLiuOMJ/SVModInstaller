@@ -88,7 +88,7 @@ pip install -r requirements.txt
 python project.py update
 ```
 
-1. 构建可执行文件：
+2. 构建可执行文件：
 
 ```bash
 python project.py build --all  # 构建所有可执行文件
@@ -97,7 +97,7 @@ python project.py build -i     # 仅构建 SVModInstaller
 python project.py build -p     # 仅构建 SVPathFinder
 ```
 
-1. 构建文件将在 [dist](./dist/) 目录中生成。
+3. 构建文件将在 [dist](./dist/) 目录中生成。
 
 ### 发布步骤
 
@@ -109,7 +109,7 @@ python project.py release -v <版本号>  # 指定版本号
 python project.py release              # 使用当前日期作为版本号
 ```
 
-1. 发布文件将在 [release](./release/) 目录中生成。
+2. 发布文件将在 [release](./release/) 目录中生成。
 
 ---
 
@@ -138,6 +138,7 @@ python project.py release              # 使用当前日期作为版本号
   - **全部安装/移除**
 
 📁 所有 MOD 将被复制到游戏目录下的 `Mods/` 文件夹中。
+
 ⚠️ 注意：如果游戏已启动，请先关闭游戏，然后再运行安装程序。
 
 #### 当前包含的 MOD 列表
@@ -201,8 +202,6 @@ A: 再次运行本程序，选择【移除 MOD】即可删除指定或全部 MOD
 A: 可能是该文件路径过深，引起的解压错误，从而报错找不到对应的文件。建议将 `SVModsInstall_v${VERSION}.zip` 移动至浅层路径下再解压运行。
 
 ---
-
-# 🌟 星露谷物语模组安装程序使用说明
 
 ## 📝 版本信息
 

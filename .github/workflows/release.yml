@@ -50,7 +50,7 @@ jobs:
         id: changelog
         run: |
           $previousTag = "${{ steps.previoustag.outputs.tag }}"
-          $changelog = git log "$previousTag..HEAD" --pretty=format:"- %s%n"
+          $changelog = git log "$previousTag..HEAD" --pretty=format:"- %s%n%n"
           $changelog = $changelog -replace "`r`n", "%0A"
           echo "CHANGELOG=$changelog" >> $env:GITHUB_OUTPUT
         shell: pwsh
