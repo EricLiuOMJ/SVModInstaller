@@ -17,3 +17,5 @@ build/
 cache/
 dist/
 release/
+
+**/Mods/**

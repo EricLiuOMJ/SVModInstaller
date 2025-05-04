@@ -1,6 +1,7 @@
 # 🌟 星露谷物语模组安装程序使用说明
 
-[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org)  
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org)
+
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 > **作者**：Eric Liu
@@ -38,7 +39,7 @@
 
 ### 2. 启动安装程序
 
-解压 `SVModsInstall_v20250501.zip`，进入 `SVModInstaller` 目录，双击运行 `SVModInstaller.exe`，进入主菜单界面。
+解压 `SVModsInstall_v${VERSION}.zip`，进入 `SVModInstaller` 目录，双击运行 `SVModInstaller.exe`，进入主菜单界面。
 
 ---
 
@@ -69,45 +70,46 @@
 ### 环境要求
 
 - Python 3.8 或更高版本
-- 安装所需依赖：
+- 安装所需依赖
 
-```bash
-git clone https://github.com/EricLiuOMJ/SVModInstaller.git
-git lfs pull
-cd SVModInstaller
-python -m venv venv
-.\venv\Scripts\activate
-pip install -r requirements.txt
-```
+  ```pwsh
+  git clone https://github.com/EricLiuOMJ/SVModInstaller.git
+  git lfs pull
+  cd SVModInstaller
+  python -m venv venv
+  .\venv\Scripts\activate
+  pip install -r requirements.txt
+  ```
 
 ### 构建步骤
 
-1. 更新资源文件（可选）：
+1. 更新资源文件（可选）
+   将 Stardrop 和 SMAPI 安装包放入 `resource/` 目录。
 
-```bash
-python project.py update
-```
+   ```bash
+   python project.py update
+   ```
 
-2. 构建可执行文件：
+2. 构建可执行文件
 
-```bash
-python project.py build --all  # 构建所有可执行文件
-# 或
-python project.py build -i     # 仅构建 SVModInstaller
-python project.py build -p     # 仅构建 SVPathFinder
-```
+   ```bash
+   python project.py build --all  # 构建所有可执行文件
+   # 或
+   python project.py build -i     # 仅构建 SVModInstaller
+   python project.py build -p     # 仅构建 SVPathFinder
+   ```
 
 3. 构建文件将在 [dist](./dist/) 目录中生成。
 
 ### 发布步骤
 
-1. 运行发布命令：
+1. 运行发布命令
 
-```bash
-python project.py release -v <版本号>  # 指定版本号
-# 或
-python project.py release              # 使用当前日期作为版本号
-```
+   ```bash
+   python project.py release -v <版本号>  # 指定版本号
+   # 或
+   python project.py release              # 使用当前日期作为版本号
+   ```
 
 2. 发布文件将在 [release](./release/) 目录中生成。
 
@@ -125,7 +127,7 @@ python project.py release              # 使用当前日期作为版本号
 
 ✅ **注意**：请勿关闭安装窗口，直到提示“SMAPI 安装完成”。
 
-当前 SMAPI 版本为：`SMAPI 4.2.1-2400-4-2-1-1742951921`
+> 当前 SMAPI 版本为：`SMAPI 4.2.1-2400-4-2-1-1742951921`
 
 ---
 
@@ -181,11 +183,11 @@ A: 确保你已正确安装游戏，并且可以通过 `SVPathFinder.exe` 正确
 
 A: 有两种方式：
 
-1. 通过 Steam/Epic 启动游戏前，右键点击游戏 → 属性 → 启动选项，添加如下命令：
+1. 通过 Steam 启动游戏前，右键点击游戏 → 属性 → 启动选项，添加如下命令：
 
-```bash
-"${"X:\Path\To"}\Stardew Valley\StardewModdingAPI.exe" %command%
-```
+   ```bash
+   "${"X:\Path\To"}\Stardew Valley\StardewModdingAPI.exe" %command%
+   ```
 
 2. 直接使用 Stardrop 启动游戏。
 
