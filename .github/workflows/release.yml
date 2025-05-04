@@ -57,8 +57,9 @@ jobs:
 
       - name: Set time
         run: |
-          TIME="$(TZ='Asia/Shanghai' date +'%Y-%m-%d %H:%M:%S')"
-          echo "TIME=$TIME" >> $GITHUB_ENV
+          $time = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date), 'China Standard Time').ToString('yyyy-MM-dd HH:mm:ss')
+          echo "TIME=$time" >> $env:GITHUB_ENV
+        shell: pwsh
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
