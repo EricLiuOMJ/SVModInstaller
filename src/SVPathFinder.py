@@ -3,9 +3,11 @@ import winreg
 from pathlib import Path
 from typing import Optional
 import sys
+import logging
+import traceback
 
 import vdf
-from tool import Colors, print_color
+from tool import print_info, print_warning, print_error, print_success
 
 
 def get_stardew_game_path() -> Optional[Path]:
@@ -14,6 +16,7 @@ def get_stardew_game_path() -> Optional[Path]:
     Returns:
         Optional[Path]: 游戏安装路径，如果未找到则返回None
     """
+    vdf_file = None  # 初始化 vdf_file 以便在 except 块中使用
     try:
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Valve\Steam")
         steam_path_str, _ = winreg.QueryValueEx(key, "SteamPath")
@@ -21,7 +24,7 @@ def get_stardew_game_path() -> Optional[Path]:
         steam_path = Path(steam_path_str)
         vdf_file = steam_path / "steamapps" / "libraryfolders.vdf"
         if not vdf_file.is_file():
-            print_color(f"未找到 Steam 库配置文件: {vdf_file}", Colors.YELLOW)
+            print_warning(f"未找到 Steam 库配置文件: {vdf_file}")
             return None
         with open(vdf_file, 'r', encoding='utf-8') as f:
             libraryfolders = vdf.loads(f.read()).get('libraryfolders', {})
@@ -36,13 +39,18 @@ def get_stardew_game_path() -> Optional[Path]:
                         return game_path
 
     except winreg.error as e:
-        print_color(f"读取注册表时出错 (Steam 未安装或配置错误?): {e}", Colors.RED)
+        print_error(f"读取注册表时出错 (Steam 未安装或配置错误?): {e}")
+        logging.exception("读取注册表详细错误:")  # 记录堆栈跟踪
     except FileNotFoundError:
-        print_color(f"无法找到 Steam 库配置文件: {vdf_file}", Colors.RED)
+        vdf_path_str = str(vdf_file) if vdf_file else "未知路径"
+        print_error(f"无法找到 Steam 库配置文件: {vdf_path_str}")
+        logging.exception(f"查找 Steam 库配置文件 ({vdf_path_str}) 时出错:")  # 记录堆栈跟踪
     except vdf.VDFMalformedError as e:
-        print_color(f"解析 VDF 文件时出错: {e}", Colors.RED)
+        print_error(f"解析 VDF 文件时出错: {e}")
+        logging.exception(f"解析 VDF 文件 ({vdf_file}) 时出错:")  # 记录堆栈跟踪
     except Exception as e:
-        print_color(f"查找游戏路径时发生未知错误: {e}", Colors.RED)
+        print_error(f"查找游戏路径时发生未知错误: {e}")
+        logging.exception("查找游戏路径时发生未知错误:")  # 记录堆栈跟踪
     return None
 
 
@@ -65,12 +73,12 @@ if __name__ == "__main__":
     parser.add_argument('-m', '--mods', action='store_true',
                         help='输出Mods文件夹路径')
     parser.add_argument('-c', '--console',
-                        action='store_true', help='输出游戏安装路径（中文格式）')
+                        action='store_true', help='输出游戏安装路径（用户友好格式）')
     args = parser.parse_args()
 
     game_path = get_stardew_game_path()
     if not game_path:
-        print_color("错误：未找到Stardew Valley的安装路径。", Colors.RED)
+        print_error("错误：未找到Stardew Valley的安装路径。")
     else:
         mod_path = game_path / 'Mods'
         con_path_str = f"游戏安装路径为：{game_path}"
@@ -81,13 +89,14 @@ if __name__ == "__main__":
 
         if not (print_game or print_mods or print_console):
             print_console = True
+
         if print_game:
             print(str(game_path))
         if print_mods:
             print(str(mod_path))
         if print_console:
-            print_color(con_path_str, Colors.GREEN)
+            print_success(con_path_str)
 
     # 仅在交互式模式下暂停
-    if sys.stdout.isatty():
+    if sys.stdout.isatty() and not (args.game or args.mods):
         input("\n按回车键退出...")

@@ -16,14 +16,18 @@ import sys
 import shutil
 import time
 import traceback
+import logging
 import win32com.client
 from pywinauto.application import Application
 from SVPathFinder import get_stardew_game_path, get_mods_folder_path
-from tool import Colors, print_color, get_resource_path, expand_zip_file, find_zip_file
+from tool import (
+    print_info, print_warning, print_error, print_success, print_step, print_white,
+    get_resource_path, expand_zip_file, find_zip_file
+)
 
 WORK_DIR = get_resource_path("")
 RESOURCE_DIR = WORK_DIR
-print_color(f"工作目录: {WORK_DIR}", Colors.BLUE)
+print_info(f"工作目录: {WORK_DIR}")
 os.chdir(WORK_DIR)
 
 
@@ -38,7 +42,7 @@ def _longpath(path: Path) -> str:
 def remove_path(path: Path):
     """统一处理文件或目录的删除（支持长路径，依赖 shutil/os）"""
     if not path.exists():
-        print_color(f"目标不存在，无需删除: {path}", Colors.YELLOW)
+        print_warning(f"目标不存在，无需删除: {path}")
         return True  # 不存在视为成功
 
     path_prefixed = _longpath(path)
@@ -47,18 +51,18 @@ def remove_path(path: Path):
     try:
         if path.is_dir():
             # 主要依赖 shutil.rmtree
-            shutil.rmtree(path_prefixed, ignore_errors=False)  # 让错误抛出
-            print_color(f"已移除目录: {path_str}", Colors.GREEN)
+            shutil.rmtree(path_prefixed, ignore_errors=False)
+            print_success(f"已移除目录: {path_str}")
         elif path.is_file():
             os.remove(path_prefixed)
-            print_color(f"已移除文件: {path_str}", Colors.GREEN)
+            print_success(f"已移除文件: {path_str}")
         else:
-            print_color(f"无法识别的路径类型，跳过删除: {path_str}", Colors.YELLOW)
+            print_warning(f"无法识别的路径类型，跳过删除: {path_str}")
             # 不认为是失败，因为无法处理
         return True
     except Exception as e:
-        print_color(f"删除 {path_str} 时出错: {e}", Colors.RED)
-        # traceback.print_exc() # 可选：打印详细堆栈
+        print_error(f"删除 {path_str} 时出错: {e}")
+        logging.exception(f"删除路径 {path_str} 时发生错误:")
         return False  # 删除失败
 
 
@@ -78,8 +82,8 @@ def copytree_longpath(src: Path, dst: Path, symlinks: bool = False, ignore=None)
                         symlinks=symlinks, ignore=ignore, dirs_exist_ok=True)
         # 成功信息由调用者 (manage_mod) 打印
     except Exception as e:
-        print_color(f"复制目录 {src_str} 到 {dst_str} 时出错: {e}", Colors.RED)
-        # traceback.print_exc() # 可选：打印详细堆栈
+        print_error(f"复制目录 {src_str} 到 {dst_str} 时出错: {e}")
+        logging.exception(f"复制目录 {src_str} 到 {dst_str} 时发生错误:")
         raise  # 将错误重新抛出给调用者
 
 
@@ -101,10 +105,10 @@ def manage_mod(source_folder: Union[str, Path], mod_name: str, operation: str,
     items_failed = 0
 
     if not source_path.is_dir():
-        print_color(f"源 Mod 文件夹无效: {source_path}", Colors.RED)
+        print_error(f"源 Mod 文件夹无效: {source_path}")
         return 0, 1
 
-    print_color(f"处理 Mod '{mod_name}' ({operation})...", Colors.BLUE)
+    print_info(f"处理 Mod '{mod_name}' ({operation})...")
 
     for item in source_path.iterdir():
         target_item_path = mods_path / item.name
@@ -115,26 +119,22 @@ def manage_mod(source_folder: Union[str, Path], mod_name: str, operation: str,
             if operation == "copy":
                 # 1. 如果目标存在，先移除
                 if target_item_path.exists():
-                    print_color(
-                        f"  发现旧版本 '{item_name}'，正在移除...", Colors.YELLOW)
+                    print_warning(f"  发现旧版本 '{item_name}'，正在移除...")
                     if not remove_path(target_item_path):
-                        print_color(
-                            f"  移除旧版本 '{item_name}' 失败，跳过复制。", Colors.RED)
+                        print_error(f"  移除旧版本 '{item_name}' 失败，跳过复制。")
                         success = False  # 标记失败
 
                 # 2. 如果移除成功或无需移除，执行复制
                 if success:
                     if item.is_dir():
                         copytree_longpath(item, target_item_path)
-                        print_color(f"  已拷贝目录 '{item_name}'", Colors.GREEN)
+                        print_success(f"  已拷贝目录 '{item_name}'")
                     elif item.is_file():
-
                         shutil.copy2(_longpath(item),
                                      _longpath(target_item_path))
-                        print_color(f"  已拷贝文件 '{item_name}'", Colors.GREEN)
+                        print_success(f"  已拷贝文件 '{item_name}'")
                     else:
-                        print_color(
-                            f"  跳过不支持的项目类型: '{item_name}'", Colors.YELLOW)
+                        print_warning(f"  跳过不支持的项目类型: '{item_name}'")
                         success = False
 
             elif operation == "remove":
@@ -142,12 +142,13 @@ def manage_mod(source_folder: Union[str, Path], mod_name: str, operation: str,
                     if not remove_path(target_item_path):
                         success = False
                 else:
-                    print_color(f"  目标 '{item_name}' 不存在，无需移除", Colors.YELLOW)
+                    print_warning(f"  目标 '{item_name}' 不存在，无需移除")
                     success = None
 
         except Exception as e:
-            print_color(
-                f"  处理 '{item_name}' ({operation}) 时出错: {e}", Colors.RED)
+            print_error(f"  处理 '{item_name}' ({operation}) 时出错: {e}")
+            logging.exception(
+                f"处理 Mod '{mod_name}' 中的项目 '{item_name}' ({operation}) 时发生错误:")
             success = False
 
         # 更新计数器
@@ -166,13 +167,14 @@ def show_mod_menu(operation: str, mods_path: Union[str, Path]) -> None:
         mods_zip = find_zip_file("Mods", RESOURCE_DIR)
         temp_extract_dir = RESOURCE_DIR / f"Mods_extracted_{int(time.time())}"
         mods_dir = expand_zip_file(
-            mods_zip, temp_extract_dir.name)  # 使用带时间戳的目录名
+            mods_zip, temp_extract_dir.name)
     except Exception as e:
-        print_color(f"错误：无法找到或解压 Mods.zip: {e}", Colors.RED)
+        print_error(f"错误：无法找到或解压 Mods.zip: {e}")
+        logging.exception("查找或解压 Mods.zip 时出错:")
         return
 
     if not mods_dir or not mods_dir.is_dir():
-        print_color(f"错误：解压后的 Mods 目录无效: {mods_dir}", Colors.RED)
+        print_error(f"错误：解压后的 Mods 目录无效: {mods_dir}")
         return
 
     mod_folders = sorted([
@@ -181,22 +183,22 @@ def show_mod_menu(operation: str, mods_path: Union[str, Path]) -> None:
     ], key=lambda p: p.name)
 
     if not mod_folders:
-        print_color(f"在解压目录 {mods_dir.name} 下没有找到任何MOD文件夹", Colors.YELLOW)
+        print_warning(f"在解压目录 {mods_dir.name} 下没有找到任何MOD文件夹")
         return
 
     mods = [{"index": i + 1, "name": f.name, "source": f}
             for i, f in enumerate(mod_folders)]
 
-    print_color(f"\n可用 Mods (来源: {mods_dir.name}):", Colors.CYAN)
+    print_step(f"\n可用 Mods (来源: {mods_dir.name}):")
     for mod in mods:
-        print_color(f"{mod['index']:>2}. {mod['name']}", Colors.YELLOW)
-    print_color(f"{len(mods) + 1:>2}. {'全部' + operation}", Colors.YELLOW)
-    print_color(f" 0. 取消", Colors.YELLOW)
+        print_white(f"{mod['index']:>2}. {mod['name']}")
+    print_white(f"{len(mods) + 1:>2}. {'全部' + operation}")
+    print_white(f" 0. 取消")
 
     while True:
         try:
-            choice_str = input(
-                f"请选择要 {operation} 的 Mod (输入数字 0-{len(mods) + 1}): ").strip()
+            print_step(f"请选择要 {operation} 的 Mod (输入数字 0-{len(mods) + 1}): ")
+            choice_str = input().strip()
             if not choice_str:
                 continue
             choice = int(choice_str)
@@ -205,16 +207,15 @@ def show_mod_menu(operation: str, mods_path: Union[str, Path]) -> None:
             mods_to_process = []
 
             if choice == 0:
-                print_color("操作已取消。", Colors.BLUE)
+                print_info("操作已取消。")
                 return
             elif choice == len(mods) + 1:
-                print_color(
-                    f"准备 {operation} 全部 {len(mods)} 个 Mods...", Colors.BLUE)
+                print_info(f"准备 {operation} 全部 {len(mods)} 个 Mods...")
                 mods_to_process = mods
             elif 1 <= choice <= len(mods):
                 mods_to_process = [mods[choice - 1]]
             else:
-                print_color(f"无效的选项 '{choice_str}'。", Colors.RED)
+                print_error(f"无效的选项 '{choice_str}'。")
                 continue
 
             # 执行处理
@@ -226,32 +227,35 @@ def show_mod_menu(operation: str, mods_path: Union[str, Path]) -> None:
 
             # 打印总结
             if len(mods_to_process) > 0:
-                summary_color = Colors.RED if total_failed > 0 else Colors.GREEN
-                print_color(
-                    f"\n操作总结：{total_processed} 个项目成功，{total_failed} 个项目失败。", summary_color)
+                if total_failed > 0:
+                    print_error(
+                        f"\n操作总结：{total_processed} 个项目成功，{total_failed} 个项目失败。")
+                else:
+                    print_success(
+                        f"\n操作总结：{total_processed} 个项目成功，{total_failed} 个项目失败。")
             break
 
         except ValueError:
-            print_color(f"输入无效 '{choice_str}'，请输入数字。", Colors.RED)
+            print_error(f"输入无效 '{choice_str}'，请输入数字。")
         except Exception as e:  # 捕获 manage_mod 可能抛出的其他错误
-            print_color(f"处理选择时发生意外错误: {e}", Colors.RED)
-            traceback.print_exc()
-            break  # 出错则退出循环
+            print_error(f"处理选择时发生意外错误: {e}")
+            logging.exception("处理 Mod 菜单选择时发生错误:")
+            break
 
 
 def install_smapi(smapi_exe_path: Union[str, Path]) -> bool:
     """安装SMAPI"""
     if Path(smapi_exe_path).exists():
-        print_color("SMAPI 已安装，跳过。", Colors.GREEN)
+        print_success("SMAPI 已安装，跳过。")
         return False
 
-    print_color("SMAPI 未安装，开始安装...", Colors.YELLOW)
+    print_warning("SMAPI 未安装，开始安装...")
 
     smapi_installer_temp_dir = RESOURCE_DIR / "SMAPI_Installer"
     if smapi_installer_temp_dir.exists():
-        print_color(
-            f"发现旧的临时 SMAPI 目录，尝试清理: {smapi_installer_temp_dir.name}", Colors.YELLOW)
-        remove_path(smapi_installer_temp_dir)  # 直接调用
+        print_warning(
+            f"发现旧的临时 SMAPI 目录，尝试清理: {smapi_installer_temp_dir.name}")
+        remove_path(smapi_installer_temp_dir)
 
     smapi_extract_path = None
     try:
@@ -267,10 +271,12 @@ def install_smapi(smapi_exe_path: Union[str, Path]) -> bool:
             "SMAPI.Installer.exe"), None)
 
         if not installer_path or not installer_path.is_file():
-            raise Exception(f"在 {smapi_extract_path} 中找不到 SMAPI.Installer.exe")
+            print_error(f"在 {smapi_extract_path} 中找不到 SMAPI.Installer.exe")
+            raise FileNotFoundError(
+                f"在 {smapi_extract_path} 中找不到 SMAPI.Installer.exe")
 
-        print_color(f"找到 SMAPI 安装程序: {installer_path}", Colors.BLUE)
-        print_color("正在启动 SMAPI 安装程序...", Colors.YELLOW)
+        print_info(f"找到 SMAPI 安装程序: {installer_path}")
+        print_warning("正在启动 SMAPI 安装程序...")
 
         shell = win32com.client.Dispatch("Shell.Application")
         shell.ShellExecute(str(installer_path), "", str(
@@ -288,12 +294,12 @@ def install_smapi(smapi_exe_path: Union[str, Path]) -> bool:
         app.top_window().type_keys("{ENTER}")
         app.top_window().wait_not('visible', timeout=30)
 
-        print_color("SMAPI安装完成", Colors.GREEN)
+        print_success("SMAPI安装完成")
         return True
 
     except Exception as e:
-        print_color(f"SMAPI 安装过程中出错: {str(e)}", Colors.RED)
-        traceback.print_exc()
+        print_error(f"SMAPI 安装过程中出错: {str(e)}")
+        logging.exception("SMAPI 安装过程中出错:")
         return False
 
 
@@ -303,21 +309,21 @@ def install_stardrop(sv_path: Union[str, Path]) -> None:
     stardrop_shortcut_path = Path(
         os.path.expanduser("~/Desktop")) / "Stardrop.lnk"
 
-    print_color(f"检查 Stardrop 安装状态于: {stardrop_target_path}", Colors.BLUE)
+    print_info(f"检查 Stardrop 安装状态于: {stardrop_target_path}")
 
     stardrop_extract_path = None
     try:
         if stardrop_target_path.exists() and (stardrop_target_path / "Stardrop.exe").exists():
-            print_color("Stardrop 已安装，跳过安装。", Colors.GREEN)
+            print_success("Stardrop 已安装，跳过安装。")
         else:
-            print_color("Stardrop 未安装或不完整，开始安装...", Colors.YELLOW)
+            print_warning("Stardrop 未安装或不完整，开始安装...")
             stardrop_zip = find_zip_file("Stardrop", RESOURCE_DIR)
             stardrop_extract_temp_dir = RESOURCE_DIR / "Stardrop_extracted"
 
             # 清理旧的临时目录（如果存在）
             if stardrop_extract_temp_dir.exists():
-                print_color(
-                    f"发现旧的临时目录，尝试清理: {stardrop_extract_temp_dir.name}", Colors.YELLOW)
+                print_warning(
+                    f"发现旧的临时目录，尝试清理: {stardrop_extract_temp_dir.name}")
                 remove_path(stardrop_extract_temp_dir)
 
             stardrop_extract_path = expand_zip_file(
@@ -326,21 +332,21 @@ def install_stardrop(sv_path: Union[str, Path]) -> None:
             if not stardrop_extract_path or not stardrop_extract_path.is_dir():
                 raise Exception("Stardrop 解压失败或解压路径无效")
 
-            print_color(
-                f"将 Stardrop 从 {stardrop_extract_path} 复制到 {stardrop_target_path}...", Colors.BLUE)
+            print_info(
+                f"将 Stardrop 从 {stardrop_extract_path} 复制到 {stardrop_target_path}...")
 
             stardrop_target_path.parent.mkdir(parents=True, exist_ok=True)
             copytree_longpath(stardrop_extract_path, stardrop_target_path)
-            print_color("Stardrop 文件复制完成。", Colors.GREEN)
+            print_success("Stardrop 文件复制完成。")
 
         # 创建桌面快捷方式
         if not stardrop_shortcut_path.exists():
-            print_color("正在创建 Stardrop 桌面快捷方式...", Colors.YELLOW)
+            print_warning("正在创建 Stardrop 桌面快捷方式...")
             try:
                 stardrop_exe_path = stardrop_target_path / "Stardrop.exe"
                 if not stardrop_exe_path.exists():
-                    print_color(
-                        f"错误：找不到 Stardrop.exe 用于创建快捷方式: {stardrop_exe_path}", Colors.RED)
+                    print_error(
+                        f"错误：找不到 Stardrop.exe 用于创建快捷方式: {stardrop_exe_path}")
                 else:
                     shell = win32com.client.Dispatch("WScript.Shell")
                     shortcut = shell.CreateShortCut(
@@ -351,54 +357,54 @@ def install_stardrop(sv_path: Union[str, Path]) -> None:
                     shortcut.save()
                     print_color("桌面快捷方式创建完成。", Colors.GREEN)
             except Exception as short_e:
-                print_color(f"创建 Stardrop 快捷方式时出错: {short_e}", Colors.RED)
+                print_error(f"创建 Stardrop 快捷方式时出错: {short_e}")
+                logging.exception("创建 Stardrop 快捷方式时出错:")  # 记录堆栈
         else:
-            print_color("Stardrop 桌面快捷方式已存在。", Colors.GREEN)
+            print_success("Stardrop 桌面快捷方式已存在。")
 
     except Exception as e:
-        print_color(f"Stardrop 安装过程中失败: {str(e)}", Colors.RED)
-        traceback.print_exc()
+        print_error(f"Stardrop 安装过程中失败: {str(e)}")
+        logging.exception("Stardrop 安装过程中失败:")
 
 
 def show_mod_menu_wrapper(mods_path: Path):
     """包装 show_mod_menu 以适应 run_step (处理用户交互循环)"""
     while True:
-        print_color("\n请选择 Mod 操作：", Colors.YELLOW)
-        print_color("1. 安装/更新 Mod (会覆盖现有同名文件/文件夹)", Colors.YELLOW)
-        print_color("2. 移除 Mod", Colors.YELLOW)
-        print_color("3. 跳过 Mod 管理", Colors.YELLOW)
-        print_color("请输入选项（1-3）：", Colors.YELLOW)
+        print_step("\n请选择 Mod 操作：")
+        print_white("1. 安装/更新 Mod (会覆盖现有同名文件/文件夹)")
+        print_white("2. 移除 Mod")
+        print_white("3. 跳过 Mod 管理")
+        print_step("请输入选项（1-3）：")
 
         choice = input().strip()
         if choice == "1":
             show_mod_menu("copy", mods_path)
-            break  # 完成操作后退出循环
+            break
         elif choice == "2":
             show_mod_menu("remove", mods_path)
-            break  # 完成操作后退出循环
+            break
         elif choice == "3":
-            print_color("跳过 MOD 管理。", Colors.BLUE)
+            print_info("跳过 MOD 管理。")
             break
         else:
-            print_color("无效的选项，请重新输入。", Colors.RED)
+            print_error("无效的选项，请重新输入。")
 
 
 def run_step(step_num: int, description: str, func, *args, **kwargs) -> bool:
     """运行一个步骤并处理异常"""
-    print_color(f"\n=== 步骤 {step_num}：{description} ===", Colors.YELLOW)
+    print_step(f"\n=== 步骤 {step_num}：{description} ===")
     try:
         result = func(*args, **kwargs)
-        # print_color(f"步骤 {step_num} 完成。", Colors.GREEN) # 可以在具体函数内部打印成功信息
-        return True  # 表示步骤启动且无异常（不一定代表逻辑成功）
+        return True
     except Exception as e:
-        print_color(f"步骤 {step_num} ({description}) 执行失败:", Colors.RED)
-        traceback.print_exc()
-        return False  # 表示步骤执行失败
+        print_error(f"步骤 {step_num} ({description}) 执行失败:")
+        logging.exception(f"步骤 {step_num} ({description}) 执行时发生错误:")
+        return False
 
 
 def _cleanup_temp_dirs():
     """清理所有已知的临时目录"""
-    print_color("\n正在尝试清理临时文件...", Colors.BLUE)
+    print_info("\n正在尝试清理临时文件...")
     temp_dirs_fixed = [
         RESOURCE_DIR / "SMAPI_Installer",
         RESOURCE_DIR / "Stardrop_extracted",
@@ -412,88 +418,89 @@ def _cleanup_temp_dirs():
             if item.is_dir():
                 temp_dirs_pattern.append(item)
     except Exception as glob_e:
-        print_color(f"查找 Mods 临时目录时出错: {glob_e}", Colors.YELLOW)
+        print_warning(f"查找 Mods 临时目录时出错: {glob_e}")
 
     all_temp_dirs = temp_dirs_fixed + temp_dirs_pattern
 
     if not all_temp_dirs:
-        print_color("  未找到需要清理的临时目录。", Colors.BLUE)
+        print_info("  未找到需要清理的临时目录。")
         return
 
     for temp_dir in all_temp_dirs:
         if temp_dir.exists():
-            print_color(f"  尝试清理: {temp_dir.name}", Colors.BLUE)
+            print_info(f"  尝试清理: {temp_dir.name}")
             if not remove_path(temp_dir):  # remove_path 会打印成功或失败信息
-                pass  # 失败信息已打印
+                pass
 
 
 def main() -> None:
     """程序主入口"""
     LINE = "=" * 60
-    print_color(LINE, Colors.GREEN)
-    print_color("          星露谷物语 Mod 安装程序 v1.1.0", Colors.GREEN)
-    print_color(LINE, Colors.GREEN)
-    exit_code = 0  # 默认为成功退出
-    was_smapi_installed_now = False  # 用于判断是否显示 Steam 提示
+    print_success(LINE)
+    print_success("          星露谷物语 Mod 安装程序 v1.1.0")
+    print_success(LINE)
+    exit_code = 0
 
     try:
-        # 步骤 0: 获取路径 (这个不适合用 run_step，因为它决定后续步骤是否执行)
-        print_color("\n=== 步骤 0：获取游戏路径 ===", Colors.YELLOW)
+        # 步骤 0: 获取路径
+        print_step("\n=== 步骤 0：获取游戏路径 ===")
         sv_path = get_stardew_game_path()
         if not sv_path:
-            print_color("未能自动找到游戏路径，请手动运行 SMAPI 安装程序。", Colors.RED)
+            print_error("未能自动找到游戏路径，请手动运行 SMAPI 安装程序。")
             exit_code = 1
             return
         mods_path = sv_path / "Mods"
         smapi_exe_path = sv_path / "StardewModdingAPI.exe"
 
-        print_color(f"游戏路径: {sv_path}", Colors.BLUE)
-        print_color(f"Mods 路径: {mods_path}", Colors.BLUE)
+        print_info(f"游戏路径: {sv_path}")
+        print_info(f"Mods 路径: {mods_path}")
 
         # 步骤 1: 安装 SMAPI
         smapi_step_success = run_step(
             1, "安装 SMAPI", install_smapi, smapi_exe_path)
         if smapi_step_success:
-            # 检查 SMAPI 是否确实安装成功（或已安装）
             if not smapi_exe_path.exists():
-                # 虽然 run_step 成功，但 SMAPI 文件不存在，说明逻辑失败
-                print_color(
-                    "SMAPI 安装步骤完成，但未检测到 StardewModdingAPI.exe。", Colors.YELLOW)
+                print_warning(
+                    "SMAPI 安装步骤报告成功，但未检测到 StardewModdingAPI.exe。")
         else:
-            mods_path.mkdir(exist_ok=True)
-            print_color("SMAPI 安装步骤失败，后续步骤可能受影响。", Colors.YELLOW)
+            print_warning("SMAPI 安装步骤失败，后续步骤可能受影响。")
+            try:
+                mods_path.mkdir(exist_ok=True)
+                print_info(f"已尝试创建 Mods 目录: {mods_path}")
+            except Exception as mkdir_e:
+                print_warning(f"尝试创建 Mods 目录失败: {mkdir_e}")
 
         # 步骤 2: MODS 安装管理
         mod_step_success = run_step(
             2, "MODS 安装管理", show_mod_menu_wrapper, mods_path)
         if not mod_step_success:
-            print_color("MOD 管理步骤执行失败。", Colors.YELLOW)
+            print_warning("MOD 管理步骤执行失败。")
 
         # 步骤 3: 安装 Stardrop
         stardrop_step_success = run_step(
             3, "安装 Stardrop", install_stardrop, sv_path)
         if not stardrop_step_success:
-            print_color("Stardrop 安装步骤执行失败。", Colors.YELLOW)
+            print_warning("Stardrop 安装步骤执行失败。")
 
         # 结束提示
-        print_color(LINE, Colors.GREEN)
-        print_color("                    安装程序执行完毕！", Colors.GREEN)
-        print_color(LINE, Colors.GREEN)
+        print_success(LINE)
+        print_success("                    安装程序执行完毕！")
+        print_success(LINE)
 
-        # 检查 SMAPI 是否存在来决定是否显示提示 (更可靠的方式)
+        # 检查 SMAPI 是否存在来决定是否显示提示
         if smapi_exe_path.exists():
-            print_color(LINE, Colors.BLUE)
-            print_color("提示：如果通过 Steam 启动游戏，请将以下内容复制粘贴到游戏启动选项中：", Colors.CYAN)
-            print_color(f'"{smapi_exe_path}" %command%', Colors.CYAN)
-            print_color(LINE, Colors.BLUE)
+            print_info("\n" + LINE)
+            print_step("提示：如果通过 Steam 启动游戏，请将以下内容复制粘贴到游戏启动选项中：")
+            print_white(f'  "{smapi_exe_path}" %command%')
+            print_info(LINE)
 
     except Exception as e:
-        print_color("\n发生未处理的严重错误:", Colors.RED)
-        traceback.print_exc()
+        print_error("\n发生未处理的严重错误:")
+        logging.exception("主程序发生未处理的严重错误:")
         exit_code = 1
     finally:
         _cleanup_temp_dirs()
-        print_color("\n按回车键退出...", Colors.WHITE)
+        print_white("\n按回车键退出...")
         input()
         sys.exit(exit_code)
 

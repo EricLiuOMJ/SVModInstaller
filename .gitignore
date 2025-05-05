@@ -17,5 +17,6 @@ build/
 cache/
 dist/
 release/
+logs/
 
 **/Mods/**
