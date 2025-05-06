@@ -53,9 +53,15 @@ jobs:
         run: |
           $previousTag = "${{ steps.previoustag.outputs.tag }}"
           $rawLog = git log "$previousTag..HEAD" --pretty=format:"- %s" | Out-String
-          $changelog = $rawLog.Trim().Replace("`r`n", "%0A").Replace("`n", "%0A")
-          $changelog = $changelog + "%0A"
-          echo "CHANGELOG=$changelog" >> $env:GITHUB_OUTPUT
+          $changelog = $rawLog.Trim() -replace "`r`n", "`n" -replace "`n", "%0A"
+          if ($changelog -notmatch '%0A$') {
+            $changelog = "$changelog%0A"
+          }
+
+          @"
+          CHANGELOG=$changelog
+          "@ | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
+
         shell: pwsh
 
       - name: Set time

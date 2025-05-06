@@ -301,7 +301,7 @@ def create_release_zip(version: str) -> Path:
     release_name = f"SVModsInstall_v{version}"
     zip_name = release_name
     exe_path = DIST_DIR / "SVModInstaller.exe"
-    readme_path = SCRIPT_DIR / "INSTALL.md"
+    readme_path = PROJECT_ROOT / "INSTALL.md"
     zip_files = list(RESOURCE_DIR.glob("*.zip"))
     files_to_copy = [exe_path, readme_path] + zip_files
     return build_release_package(release_name, zip_name, files_to_copy)
@@ -311,7 +311,7 @@ def create_sv_path_finder_zip(version: str) -> Path:
     release_name = f"SVPathFinder_v{version}"
     zip_name = release_name
     exe_path = DIST_DIR / "SVPathFinder.exe"
-    readme_path = SCRIPT_DIR / "INTRODUCTION.md"
+    readme_path = PROJECT_ROOT / "INTRODUCTION.md"
     files_to_copy = [exe_path, readme_path]
     return build_release_package(release_name, zip_name, files_to_copy)
 
