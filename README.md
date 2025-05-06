@@ -58,10 +58,19 @@
 | `src/`                  | 源代码目录       |
 | `src/SVModInstaller.py` | 主安装程序       |
 | `src/SVPathFinder.py`   | 游戏路径查找工具 |
+| `src/ColorLogger.py`    | 彩色日志输出工具 |
+| `src/project.py`        | 项目管理工具     |
+| `src/tool.py`           | 工具函数         |
 | `resource/`             | 资源文件目录     |
+| `resource/Mods/`        | MOD 文件存放目录 |
+| `build/`                | 构建临时文件目录 |
 | `cache/`                | 缓存目录         |
-| `project.py`            | 项目管理工具     |
+| `dist/`                 | 构建输出目录     |
+| `release/`              | 发布包输出目录   |
 | `requirements.txt`      | Python 依赖文件  |
+| `CHANGELOG.md`          | 版本更新日志     |
+| `LICENSE`               | 许可证文件       |
+| `INTRODUCTION.md`       | 项目介绍文档     |
 
 ---
 
@@ -87,16 +96,16 @@
    将 Stardrop 和 SMAPI 安装包放入 `resource/` 目录。
 
    ```bash
-   python project.py update
+   python src/project.py update
    ```
 
 2. 构建可执行文件
 
    ```bash
-   python project.py build --all  # 构建所有可执行文件
+   python src/project.py build --all  # 构建所有可执行文件
    # 或
-   python project.py build -i     # 仅构建 SVModInstaller
-   python project.py build -p     # 仅构建 SVPathFinder
+   python src/project.py build -i     # 仅构建 SVModInstaller
+   python src/project.py build -p     # 仅构建 SVPathFinder
    ```
 
 3. 构建文件将在 [dist](./dist/) 目录中生成。
@@ -106,9 +115,9 @@
 1. 运行发布命令
 
    ```bash
-   python project.py release -v <版本号>  # 指定版本号
+   python src/project.py release -v <版本号>  # 指定版本号
    # 或
-   python project.py release              # 使用当前日期作为版本号
+   python src/project.py release              # 使用当前日期作为版本号
    ```
 
 2. 发布文件将在 [release](./release/) 目录中生成。
@@ -207,6 +216,7 @@ A: 可能是该文件路径过深，引起的解压错误，从而报错找不�
 
 ## 📝 版本信息
 
+当前版本：`v1.2.2`
 请查看 [CHANGELOG.md](./CHANGELOG.md) 获取详细的版本更新信息。
 
 ---

@@ -7,7 +7,7 @@ import logging
 import traceback
 
 import vdf
-from tool import print_info, print_warning, print_error, print_success
+from ColorLogger import logger
 
 
 def get_stardew_game_path() -> Optional[Path]:
@@ -24,7 +24,7 @@ def get_stardew_game_path() -> Optional[Path]:
         steam_path = Path(steam_path_str)
         vdf_file = steam_path / "steamapps" / "libraryfolders.vdf"
         if not vdf_file.is_file():
-            print_warning(f"未找到 Steam 库配置文件: {vdf_file}")
+            logger.warning(f"未找到 Steam 库配置文件: {vdf_file}")
             return None
         with open(vdf_file, 'r', encoding='utf-8') as f:
             libraryfolders = vdf.loads(f.read()).get('libraryfolders', {})
@@ -39,17 +39,17 @@ def get_stardew_game_path() -> Optional[Path]:
                         return game_path
 
     except winreg.error as e:
-        print_error(f"读取注册表时出错 (Steam 未安装或配置错误?): {e}")
+        logger.error(f"读取注册表时出错 (Steam 未安装或配置错误?): {e}")
         logging.exception("读取注册表详细错误:")  # 记录堆栈跟踪
     except FileNotFoundError:
         vdf_path_str = str(vdf_file) if vdf_file else "未知路径"
-        print_error(f"无法找到 Steam 库配置文件: {vdf_path_str}")
+        logger.error(f"无法找到 Steam 库配置文件: {vdf_path_str}")
         logging.exception(f"查找 Steam 库配置文件 ({vdf_path_str}) 时出错:")  # 记录堆栈跟踪
     except vdf.VDFMalformedError as e:
-        print_error(f"解析 VDF 文件时出错: {e}")
+        logger.error(f"解析 VDF 文件时出错: {e}")
         logging.exception(f"解析 VDF 文件 ({vdf_file}) 时出错:")  # 记录堆栈跟踪
     except Exception as e:
-        print_error(f"查找游戏路径时发生未知错误: {e}")
+        logger.error(f"查找游戏路径时发生未知错误: {e}")
         logging.exception("查找游戏路径时发生未知错误:")  # 记录堆栈跟踪
     return None
 
@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
     game_path = get_stardew_game_path()
     if not game_path:
-        print_error("错误：未找到Stardew Valley的安装路径。")
+        logger.error("错误：未找到Stardew Valley的安装路径。")
     else:
         mod_path = game_path / 'Mods'
         con_path_str = f"游戏安装路径为：{game_path}"
@@ -95,8 +95,8 @@ if __name__ == "__main__":
         if print_mods:
             print(str(mod_path))
         if print_console:
-            print_success(con_path_str)
+            logger.success(con_path_str)
 
     # 仅在交互式模式下暂停
     if sys.stdout.isatty() and not (args.game or args.mods):
-        input("\n按回车键退出...")
+        input("按回车键退出...")

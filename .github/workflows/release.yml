@@ -32,13 +32,13 @@ jobs:
           pip install -r requirements.txt
 
       - name: Update resources
-        run: python project.py update
+        run: python src/project.py update
 
       - name: Build all executables
-        run: python project.py build --all
+        run: python src/project.py build --all
 
       - name: Generate Release Files
-        run: python project.py release
+        run: python src/project.py release
 
       - name: Get Previous Tag
         id: previoustag

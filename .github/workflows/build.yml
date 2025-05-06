@@ -32,4 +32,4 @@ jobs:
           pip install -r requirements.txt
 
       - name: Build all executables
-        run: python project.py build --all
+        run: python src/project.py build --all
