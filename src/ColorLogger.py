@@ -129,6 +129,7 @@ class ColorLogger:
         try:
             console_formatter = ColorConsoleFormatter(console_format)
             console_handler = logging.StreamHandler(sys.stdout)
+            console_handler.stream.reconfigure(encoding='utf-8')
             console_handler.setLevel(level)
             console_handler.setFormatter(console_formatter)
             self.logger.addHandler(console_handler)
